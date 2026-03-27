@@ -7,5 +7,7 @@ const CLIENT_ID = process.env.CLIENT_ID || ""
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || ""
 const PRIVATE_KEY_PATH = process.env.PRIVATE_KEY_PATH || ""
 const PORT = process.env.PORT || 3000
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN || ""
 
-export { PORT, APP_ID, CLIENT_ID, WEBHOOK_SECRET, PRIVATE_KEY_PATH }
+
+export { PORT, APP_ID, CLIENT_ID, WEBHOOK_SECRET, PRIVATE_KEY_PATH, GITHUB_TOKEN }

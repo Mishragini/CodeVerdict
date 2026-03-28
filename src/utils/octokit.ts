@@ -44,14 +44,9 @@ octokit_app.webhooks.on("pull_request.opened", async ({ octokit, payload }) => {
 
         const diff = typeof prResponse.data === "string" ? prResponse.data : ""
 
-        const userInput = [
-            `PR Title: ${payload.pull_request.title}`,
-            `PR Description: ${payload.pull_request.body ?? "No description provided."}`,
-            "Unified Diff:",
-            diff
-        ].join("\n\n")
+        const pr_description = payload.pull_request.body ?? "No description provided."
 
-        const review = await getReview(userInput)
+        const review = await getReview(payload.pull_request.title, pr_description, diff)
 
         await octokit.request("POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews", {
             owner,

@@ -6,23 +6,77 @@ const client = new OpenAI({
     baseURL: "https://models.inference.ai.azure.com",
     apiKey: GITHUB_TOKEN,
 })
+const MAX_TOKENS = 80000
 
-const getReview = async (input: string) => {
-    const response = await client.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-            {
-                role: "system",
-                content: system_prompt
-            },
-            {
-                role: "user",
-                content: input
+const splitDiffInFiles = (diff: string) => {
+    const trimmed = diff.trim()
+    if (!trimmed) return [];
+    // this keeps the diff --git text 
+    const files = trimmed.split(/(?=diff --git )/).filter(Boolean)
+    return files
+}
+
+// Path from the first line of a git unified diff chunk (`diff --git ...`). 
+const pathFromDiffChunk = (chunk: string): string => {
+    const first = chunk.match(/^diff --git .+$/m)?.[0] ?? ""
+    const rename_or_normal = first.match(/^diff --git a\/(.+?) b\/(.+)$/)
+    if (rename_or_normal?.[1] && rename_or_normal[2]) {
+        return rename_or_normal[2] === "/dev/null" ? rename_or_normal[1] : rename_or_normal[2]
+    }
+    const added = first.match(/^diff --git \/dev\/null b\/(.+)$/)
+    if (added?.[1]) return added[1]
+    return first.replace(/^diff --git\s+/, "").slice(0, 200) || "unknown"
+}
+
+const getReview = async (pr_title: string, pr_description: string, diff: string) => {
+    //handle the long diffs
+    //split the unified diff into diff_files
+    const exceeds_token_timit = diff.length > MAX_TOKENS;
+    let chunks: string[] = []
+    let files_to_skip: string[] = [];
+    if (exceeds_token_timit) {
+        const diff_files = splitDiffInFiles(diff)
+        //generate chunk
+        diff_files.forEach((file) => {
+            if (file.length <= MAX_TOKENS) {
+                chunks.push(file)
+            } else {
+                files_to_skip.push(pathFromDiffChunk(file))
             }
-        ]
-    })
+        })
+    } else {
+        chunks.push(diff)
+    }
+    const result = await Promise.all(
+        chunks.map(async (chunk) => {
+            const input = [
+                `PR Title: ${pr_title}`,
+                `PR Description: ${pr_description}`,
+                "Unified Diff:",
+                chunk
+            ].join("\n\n")
 
-    return response.choices[0]?.message?.content ?? "No review generated."
+            const response = await client.chat.completions.create({
+                model: "gpt-4o",
+                messages: [
+                    {
+                        role: "system",
+                        content: system_prompt
+                    },
+                    {
+                        role: "user",
+                        content: input
+                    }
+                ]
+            })
+            return response.choices[0]?.message?.content
+        })
+    )
+    if (files_to_skip) {
+        result.push(`The following files were skipped, consider incremental edits or a follow-up PR for proper review: ` +
+             `\n\n${files_to_skip.join("\n")}`)
+    }
+    return result.filter(Boolean).join("\n\n")
 }
 
 export { getReview }

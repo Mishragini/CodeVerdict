@@ -72,9 +72,9 @@ const getReview = async (pr_title: string, pr_description: string, diff: string)
             return response.choices[0]?.message?.content
         })
     )
-    if (files_to_skip) {
+    if (files_to_skip.length > 0) {
         result.push(`The following files were skipped, consider incremental edits or a follow-up PR for proper review: ` +
-             `\n\n${files_to_skip.join("\n")}`)
+            `\n\n${files_to_skip.join("\n")}`)
     }
     return result.filter(Boolean).join("\n\n")
 }

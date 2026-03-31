@@ -32,6 +32,8 @@ repository_router.get("/", authMiddleware, async (req: AuthenticatedRequest, res
             }))
         }
         res.json({
+            total: rep_response.data.total_count,
+            page: page,
             repositories
         })
 

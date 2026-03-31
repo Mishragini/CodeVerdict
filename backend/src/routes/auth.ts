@@ -50,8 +50,9 @@ auth_router.get("/login/callback", async (req, res) => {
 
             let token = jwt.sign(user, JWT_SECRET)
             res.cookie("token", token, {
-                httpOnly: true,
-                secure: true,
+                //uncomment it for prod
+                //httpOnly: true,
+                //secure: true,
                 sameSite: "lax"
             })
             res.redirect(`${FRONTEND_URL}/dashboard`)
@@ -63,6 +64,26 @@ auth_router.get("/login/callback", async (req, res) => {
         let message = error instanceof Error ? error.message : "Something went wrong!"
         console.error(message)
         res.redirect(`${FRONTEND_URL}/login`)
+    }
+})
+
+auth_router.get("/me", async (req, res) => {
+    try {
+        const token = req.cookies["token"]
+        if (!token) {
+            res.status(401).json({
+                error: {
+                    message: "User is not authenticated."
+                }
+            })
+            return;
+        }
+        const decoded_token = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload
+        res.json({ user: decoded_token })
+    } catch (error) {
+        let message = error instanceof Error ? error.message : "Something went wrong!"
+        console.error(message)
+        res.status(500).json(message)
     }
 })
 

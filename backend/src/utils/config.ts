@@ -34,6 +34,8 @@ const SKIPPED_EXTENSIONS = [
     ".min.js", ".min.css"
 ]
 
+const DATABASE_URL = process.env.DATABASE_URL || ""
+
 export {
     PORT,
     APP_ID,
@@ -48,5 +50,6 @@ export {
     BASE_URL,
     CLIENT_SECRET,
     JWT_SECRET,
-    FRONTEND_URL
+    FRONTEND_URL,
+    DATABASE_URL
 }

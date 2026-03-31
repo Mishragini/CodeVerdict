@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { fetchRepositories, logout } from "@/lib/apiCall";
 import type { User } from "@/lib/types";
-import { useAppDispatch } from "@/redux/hook";
+import { useAppDispatch, useAppSelector } from "@/redux/hook";
+import { setRepo } from "@/redux/slice/repositorySlice";
 import { setUser } from "@/redux/slice/userSlice";
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
@@ -18,6 +19,7 @@ interface Repository {
 
 export function SideBar({ user }: SideBarProps) {
   const dispatch = useAppDispatch();
+  const { id, name } = useAppSelector((state) => state.repository);
   const {
     data,
     isLoading,
@@ -31,7 +33,6 @@ export function SideBar({ user }: SideBarProps) {
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages, lastPageParam, allPageParams) => {
       const totalPages = Math.ceil(lastPage.total / 35);
-      console.log(lastPage);
       if (lastPageParam < totalPages) {
         return lastPageParam + 1; // return next page number
       }
@@ -69,19 +70,30 @@ export function SideBar({ user }: SideBarProps) {
     return () => observer.disconnect(); // clean up on unmount
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, container_ref.current]);
   return (
-    <div>
-      <div>{JSON.stringify(user)}</div>
-      <Button
-        disabled={isPending}
-        onClick={() => {
-          handleLogout();
-        }}
-      >
-        Logout
-      </Button>
+    <div className="h-full w-full  border-2 border-black">
+      <div className="flex items-center gap-4 p-8">
+        <img
+          className="w-24 h-24 rounded-full"
+          src={user.avatar_url}
+          alt="user avatar"
+        />
+        <div>
+          <h1 className="font-bold">{user.name}</h1>
+          <div className="font-medium">@{user.login}</div>
+          <Button
+            disabled={isPending}
+            onClick={() => {
+              handleLogout();
+            }}
+          >
+            Logout
+          </Button>
+        </div>
+      </div>
+
       <div
         ref={container_ref}
-        className="h-screen overflow-y-auto bg-green-200"
+        className="h-screen overflow-y-auto pl-8 space-y-4"
       >
         {isLoading && <p>Loading repositories...</p>}
         {isError && <p>Failed to load repositories</p>}
@@ -89,7 +101,15 @@ export function SideBar({ user }: SideBarProps) {
         {data?.pages.map((page) =>
           page.repositories.map((repo: Repository) => (
             <div key={repo.id}>
-              <p>{repo.name}</p>
+              <Button
+                className={`${name === repo.name ? "bg-muted" : ""}`}
+                onClick={() => {
+                  dispatch(setRepo({ id: repo.id, name: repo.name }));
+                }}
+                variant="ghost"
+              >
+                {repo.name}
+              </Button>
             </div>
           )),
         )}

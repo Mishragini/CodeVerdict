@@ -28,5 +28,6 @@
 
     "rootDir": "./src",
     "outDir": "./dist"
-  }
+  },
+  "exclude": ["prisma.config.ts"]
 }

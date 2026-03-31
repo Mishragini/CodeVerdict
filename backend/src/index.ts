@@ -12,10 +12,11 @@ app.use(cors({
     origin: FRONTEND_URL,
     credentials: true,
 }))
+app.use(octokit_middleware)
+
 app.use(express.json())
 app.use(cookieParser())
 app.use(urlencoded({ extended: true }))
-app.use(octokit_middleware)
 
 app.use("/api/v1/auth", auth_router)
 app.use("/api/v1/repositories", repository_router)

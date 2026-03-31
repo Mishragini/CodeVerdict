@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import { authMiddleware, type AuthenticatedRequest } from "../middleware/authMiddleware";
 import { Octokit } from "octokit";
+import { prisma } from "../db";
 
 const repository_router = Router()
 
@@ -26,6 +27,7 @@ repository_router.get("/", authMiddleware, async (req: AuthenticatedRequest, res
         let repositories: Repository[] = []
         if (rep_response.data.total_count > 0) {
             repositories = rep_response.data.repositories.map((repo: { id: number, name: string; html_url: string; url: string }) => ({
+                id: repo.id,
                 name: repo.name,
                 url: repo.html_url,
                 api_url: repo.url
@@ -37,6 +39,33 @@ repository_router.get("/", authMiddleware, async (req: AuthenticatedRequest, res
             repositories
         })
 
+    } catch (error) {
+        let message = error instanceof Error ? error.message : "Something went wrong!"
+        console.error(message)
+        res.status(500).json({ error: { message } })
+    }
+})
+
+repository_router.get("/reviews", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+        const { repo_name } = req.query;
+        if (!repo_name) {
+            res.json(400).json({
+                error: {
+                    message: "Repo id is required"
+                }
+            })
+            return;
+        }
+        const reviews = await prisma.review.findMany({
+            where: {
+                repo: repo_name.toString()
+            },
+            orderBy: {
+                created_at: "desc"
+            }
+        })
+        res.json({ reviews })
     } catch (error) {
         let message = error instanceof Error ? error.message : "Something went wrong!"
         console.error(message)

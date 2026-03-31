@@ -33,7 +33,6 @@ export function SideBar({ user }: SideBarProps) {
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages, lastPageParam, allPageParams) => {
       const totalPages = Math.ceil(lastPage.total / 35);
-      console.log(lastPage);
       if (lastPageParam < totalPages) {
         return lastPageParam + 1; // return next page number
       }

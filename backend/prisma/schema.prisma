@@ -13,7 +13,7 @@ datasource db {
 }
 
 model Review {
-  id          Int    @id
+  id          BigInt    @id
   repo        String
   owner       String
   pull_number Int

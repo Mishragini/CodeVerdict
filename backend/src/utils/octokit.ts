@@ -106,7 +106,8 @@ octokit_app.webhooks.on("pull_request.opened", async ({ octokit, payload }) => {
                 "x-github-api-version": "2026-03-10",
             },
         })
-        const { id, created_at } = review_response.data
+        const { id, submitted_at } = review_response.data
+        const created_at = new Date(submitted_at)
         await handleOctokitReq(octokit, "PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}", {
             owner,
             repo,
@@ -128,7 +129,7 @@ octokit_app.webhooks.on("pull_request.opened", async ({ octokit, payload }) => {
                 pull_number,
                 github_url,
                 body: review,
-                created_at
+                created_at,
             },
         })
     } catch (error) {

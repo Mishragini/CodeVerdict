@@ -31,3 +31,13 @@ export async function fetchRepositories(page: number, per_page: number) {
     );
     return response.data
 }
+
+export async function fetchReviews(name: string) {
+    const response = await axios.get(
+        `${BASE_BACKEND_URL}/api/v1/repositories/reviews?repo_name=${name}`,
+        {
+            withCredentials: true,
+        },
+    );
+    return response.data
+}

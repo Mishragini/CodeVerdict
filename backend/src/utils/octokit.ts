@@ -2,6 +2,7 @@ import { createNodeMiddleware, App, Octokit, RequestError } from "octokit"
 import { APP_ID, PRIVATE_KEY_PATH, WEBHOOK_SECRET } from "./config"
 import fs from "fs"
 import { getReview } from "./ai"
+import { prisma } from "../db"
 
 const private_key = fs.readFileSync(PRIVATE_KEY_PATH, "utf-8")
 
@@ -95,7 +96,7 @@ octokit_app.webhooks.on("pull_request.opened", async ({ octokit, payload }) => {
 
         const review = await getReview(payload.pull_request.title, pr_description, diff)
 
-        await handleOctokitReq(octokit, "POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews", {
+        const review_response = await handleOctokitReq(octokit, "POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews", {
             owner,
             repo,
             pull_number,
@@ -105,6 +106,7 @@ octokit_app.webhooks.on("pull_request.opened", async ({ octokit, payload }) => {
                 "x-github-api-version": "2026-03-10",
             },
         })
+        const { id, created_at } = review_response.data
         await handleOctokitReq(octokit, "PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}", {
             owner,
             repo,
@@ -116,6 +118,18 @@ octokit_app.webhooks.on("pull_request.opened", async ({ octokit, payload }) => {
                 title: "AI Review Complete",
                 summary: "Review has been posted as a comment on the PR."
             }
+        })
+        const github_url = `https://github.com/${owner}/${repo}/pull/${pull_number}#pullrequestreview-${id}`
+        await prisma.review.create({
+            data: {
+                id,
+                repo,
+                owner,
+                pull_number,
+                github_url,
+                body: review,
+                created_at
+            },
         })
     } catch (error) {
         console.error("Failed to get AI review:", error)

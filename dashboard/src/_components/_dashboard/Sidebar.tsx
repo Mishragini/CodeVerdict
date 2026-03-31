@@ -24,7 +24,7 @@ export function SideBar({ user }: SideBarProps) {
   } = useQuery({
     queryKey: ["repositories"],
     queryFn: async () => {
-      const { repositories } = await fetchRepositories(1, 1);
+      const { repositories } = await fetchRepositories(1, 5);
       return repositories as Repository[];
     },
   });

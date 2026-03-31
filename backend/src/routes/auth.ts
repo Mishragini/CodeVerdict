@@ -33,8 +33,9 @@ auth_router.get("/login/callback", async (req, res) => {
         const response = await axios.post(`https://github.com/login/oauth/access_token?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}&code=${code}&code_verifier=${CODE_CHALLENGE_KEY}`)
         const params = new URLSearchParams(response.data)
         const access_token = params.get("access_token")
-        const refresh_token = params.get("refresh-token")
-        const expires_at = params.get("expires_at")
+        const refresh_token = params.get("refresh_token")
+        const expires_in = params.get("expires_in")
+        const refresh_token_expires_in = params.get("refresh_token_expires_in")
         const octokit = new Octokit({ auth: access_token })
         //check if the github app is installed 
         const installations_response = await octokit.request("GET /user/installations")
@@ -53,7 +54,8 @@ auth_router.get("/login/callback", async (req, res) => {
                 access_token,
                 app_installation_id: app_installed.id,
                 refresh_token: refresh_token ?? null,
-                expires_at: expires_at ?? null
+                access_token_expiry: expires_in ?? null,
+                refresh_token_expiry: refresh_token_expires_in ?? null
             }
 
             let token = jwt.sign(user, JWT_SECRET)

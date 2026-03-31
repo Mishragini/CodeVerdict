@@ -2,6 +2,7 @@ import { App } from "octokit"
 import { APP_ID, PRIVATE_KEY_PATH, WEBHOOK_SECRET } from "./config"
 import fs from "fs"
 import { createNodeMiddleware } from "octokit"
+import { getReview } from "./ai"
 
 
 const private_key = fs.readFileSync(PRIVATE_KEY_PATH, "utf-8")
@@ -17,7 +18,6 @@ const octokit_app = new App({
 })
 
 octokit_app.webhooks.onError((error) => {
-    console.log("here..")
     if (error.name === "AggregateError") {
         console.error(`Error processing request: ${error.event}`);
     } else {
@@ -30,7 +30,32 @@ const octokit_middleware = createNodeMiddleware(octokit_app)
 
 
 octokit_app.webhooks.on("pull_request.opened", async ({ octokit, payload }) => {
-    //TODO: logic handling here
+    try {
+        const owner = payload.repository.owner.login
+        const repo = payload.repository.name
+        const pull_number = payload.pull_request.number
+
+        const prResponse = await octokit.request("GET /repos/{owner}/{repo}/pulls/{pull_number}", {
+            owner,
+            repo,
+            pull_number,
+            mediaType: { format: "diff" }
+        })
+
+        const diff = typeof prResponse.data === "string" ? prResponse.data : ""
+
+        const userInput = [
+            `PR Title: ${payload.pull_request.title}`,
+            `PR Description: ${payload.pull_request.body ?? "No description provided."}`,
+            "Unified Diff:",
+            diff
+        ].join("\n\n")
+
+        const review = await getReview(userInput)
+        console.log("AI Review:\n", review)
+    } catch (error) {
+        console.error("Failed to get AI review:", error)
+    }
 });
 
 

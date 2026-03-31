@@ -30,10 +30,26 @@ const octokit_middleware = createNodeMiddleware(octokit_app)
 
 
 octokit_app.webhooks.on("pull_request.opened", async ({ octokit, payload }) => {
+    const owner = payload.repository.owner.login
+    const repo = payload.repository.name
+    const pull_number = payload.pull_request.number
+    const head_sha = payload.pull_request.head.sha
+
+    // 1. Create the check — shows "in progress" on the PR immediately
+    const { data: check } = await octokit.request("POST /repos/{owner}/{repo}/check-runs", {
+        owner,
+        repo,
+        name: "AI Code Review",
+        head_sha,
+        status: "in_progress",
+        started_at: new Date().toISOString(),
+        output: {
+            title: "Reviewing your PR...",
+            summary: "AI review is being generated, hang tight!"
+        }
+    })
+
     try {
-        const owner = payload.repository.owner.login
-        const repo = payload.repository.name
-        const pull_number = payload.pull_request.number
 
         const prResponse = await octokit.request("GET /repos/{owner}/{repo}/pulls/{pull_number}", {
             owner,
@@ -58,8 +74,32 @@ octokit_app.webhooks.on("pull_request.opened", async ({ octokit, payload }) => {
                 "x-github-api-version": "2026-03-10",
             },
         })
+        await octokit.request("PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}", {
+            owner,
+            repo,
+            check_run_id: check.id,
+            status: "completed",
+            conclusion: "success",
+            completed_at: new Date().toISOString(),
+            output: {
+                title: "AI Review Complete",
+                summary: "Review has been posted as a comment on the PR."
+            }
+        })
     } catch (error) {
         console.error("Failed to get AI review:", error)
+        await octokit.request("PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}", {
+            owner,
+            repo,
+            check_run_id: check.id,
+            status: "completed",
+            conclusion: "failure",
+            completed_at: new Date().toISOString(),
+            output: {
+                title: "AI Review Failed",
+                summary: "Something went wrong while generating the review."
+            }
+        })
     }
 });
 

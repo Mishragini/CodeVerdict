@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { BASE_URL, CLIENT_ID, CLIENT_SECRET, CODE_CHALLENGE_KEY, FRONTEND_URL, JWT_SECRET } from "../utils/config";
+import { APP_ID, BASE_URL, CLIENT_ID, CLIENT_SECRET, CODE_CHALLENGE_KEY, FRONTEND_URL, JWT_SECRET } from "../utils/config";
 import { generateCodeChallenge } from "../utils/hashGen";
 import axios from "axios";
 import * as jwt from "jsonwebtoken"
@@ -33,26 +33,32 @@ auth_router.get("/login/callback", async (req, res) => {
         const params = new URLSearchParams(response.data)
         const access_token = params.get("access_token")
         const octokit = new Octokit({ auth: access_token })
-        const user_response = await octokit.request("GET /user", {
-            headers: {
-                'X-GitHub-Api-Version': '2026-03-10'
-            }
-        })
-        let { id, avatar_url, name } = user_response.data
+        //check if the github app is installed 
+        const installations_response = await octokit.request("GET /user/installations")
+        let { installations } = installations_response.data
+        const app_installed = installations.some((installation) => installation.app_id === parseInt(APP_ID, 10))
+        if (app_installed) {
+            //fetch user details
+            const user_response = await octokit.request("GET /user")
+            let { id, avatar_url, name } = user_response.data
 
-        let user = {
-            id,
-            avatar_url,
-            name
+            let user = {
+                id,
+                avatar_url,
+                name
+            }
+
+            let token = jwt.sign(user, JWT_SECRET)
+            res.cookie("token", token, {
+                httpOnly: true,
+                secure: true,
+                sameSite: "lax"
+            })
+            res.redirect(`${FRONTEND_URL}/dashboard`)
+        } else {
+            res.redirect(`${FRONTEND_URL}/install`)
         }
 
-        let token = jwt.sign(user, JWT_SECRET)
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: true,
-            sameSite: "lax"
-        })
-        res.redirect(`${FRONTEND_URL}/dashboard`)
     } catch (error) {
         let message = error instanceof Error ? error.message : "Something went wrong!"
         console.error(message)

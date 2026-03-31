@@ -4,6 +4,7 @@ import { generateCodeChallenge } from "../utils/hashGen";
 import axios from "axios";
 import * as jwt from "jsonwebtoken"
 import { Octokit } from "octokit";
+import { authMiddleware, type AuthenticatedRequest } from "../middleware/authMiddleware";
 
 const auth_router = Router()
 
@@ -32,20 +33,27 @@ auth_router.get("/login/callback", async (req, res) => {
         const response = await axios.post(`https://github.com/login/oauth/access_token?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}&code=${code}&code_verifier=${CODE_CHALLENGE_KEY}`)
         const params = new URLSearchParams(response.data)
         const access_token = params.get("access_token")
+        const refresh_token = params.get("refresh-token")
+        const expires_at = params.get("expires_at")
         const octokit = new Octokit({ auth: access_token })
         //check if the github app is installed 
         const installations_response = await octokit.request("GET /user/installations")
         let { installations } = installations_response.data
-        const app_installed = installations.some((installation) => installation.app_id === parseInt(APP_ID, 10))
+        const app_installed = installations.find((installation) => installation.app_id === parseInt(APP_ID, 10))
         if (app_installed) {
             //fetch user details
             const user_response = await octokit.request("GET /user")
-            let { id, avatar_url, name } = user_response.data
+            let { id, avatar_url, name, login } = user_response.data
 
             let user = {
                 id,
                 avatar_url,
-                name
+                name,
+                login,
+                access_token,
+                app_installation_id: app_installed.id,
+                refresh_token: refresh_token ?? null,
+                expires_at: expires_at ?? null
             }
 
             let token = jwt.sign(user, JWT_SECRET)
@@ -67,23 +75,25 @@ auth_router.get("/login/callback", async (req, res) => {
     }
 })
 
-auth_router.get("/me", async (req, res) => {
+auth_router.get("/me", authMiddleware, async (req: AuthenticatedRequest, res) => {
     try {
-        const token = req.cookies["token"]
-        if (!token) {
-            res.status(401).json({
-                error: {
-                    message: "User is not authenticated."
-                }
-            })
-            return;
-        }
-        const decoded_token = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload
-        res.json({ user: decoded_token })
+        const user = req.user
+        res.json({ user })
     } catch (error) {
         let message = error instanceof Error ? error.message : "Something went wrong!"
         console.error(message)
-        res.status(500).json(message)
+        res.status(500).json({ error: { message } })
+    }
+})
+
+auth_router.get("/logout", async (req, res) => {
+    try {
+        res.clearCookie("token")
+        res.json({ message: "Logged out successfully" })
+    } catch (error) {
+        let message = error instanceof Error ? error.message : "Something went wrong!"
+        console.error(message)
+        res.status(500).json({ error: { message } })
     }
 })
 

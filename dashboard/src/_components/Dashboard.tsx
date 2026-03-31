@@ -1,8 +1,9 @@
-import { fetchUser } from "@/lib/fetchUser";
+import { fetchUser } from "@/lib/apiCall";
 import { useAppDispatch, useAppSelector } from "@/redux/hook";
 import { setUser } from "@/redux/slice/userSlice";
 import { useQuery } from "@tanstack/react-query";
 import { Navigate } from "react-router";
+import { SideBar } from "./_dashboard/Sidebar";
 
 export function Dashboard() {
   const { value } = useAppSelector((state) => state.user);
@@ -25,5 +26,9 @@ export function Dashboard() {
     return <Navigate to="/login" replace />;
   }
 
-  return <div>Dashboard</div>;
+  return (
+    <div>
+      <SideBar user={value} />
+    </div>
+  );
 }

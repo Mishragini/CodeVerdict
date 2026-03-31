@@ -52,7 +52,17 @@ octokit_app.webhooks.on("pull_request.opened", async ({ octokit, payload }) => {
         ].join("\n\n")
 
         const review = await getReview(userInput)
-        console.log("AI Review:\n", review)
+
+        await octokit.request("POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews", {
+            owner,
+            repo,
+            pull_number,
+            body: review,
+            event: "COMMENT",
+            headers: {
+                "x-github-api-version": "2026-03-10",
+            },
+        })
     } catch (error) {
         console.error("Failed to get AI review:", error)
     }

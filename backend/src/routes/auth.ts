@@ -1,0 +1,63 @@
+import { Router } from "express";
+import { BASE_URL, CLIENT_ID, CLIENT_SECRET, CODE_CHALLENGE_KEY, FRONTEND_URL, JWT_SECRET } from "../utils/config";
+import { generateCodeChallenge } from "../utils/hashGen";
+import axios from "axios";
+import * as jwt from "jsonwebtoken"
+import { Octokit } from "octokit";
+
+const auth_router = Router()
+
+auth_router.get("/login", async (req, res) => {
+    try {
+        const code_challenge = generateCodeChallenge()
+        const redirect_uri = `${BASE_URL}/api/v1/auth/login/callback`
+        const url = `https://github.com/login/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirect_uri}&code_challenge=${code_challenge}&code_challenge_method=S256`
+        res.redirect(url)
+    } catch (error) {
+        res.status(500).json({
+            error: {
+                message: "Something went wrong!"
+            }
+        })
+        res.redirect(`${FRONTEND_URL}/login`)
+    }
+})
+
+auth_router.get("/login/callback", async (req, res) => {
+    try {
+        const code = req.query.code;
+        if (!code) {
+            throw new Error('Github did not return a code.')
+        }
+        const response = await axios.post(`https://github.com/login/oauth/access_token?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}&code=${code}&code_verifier=${CODE_CHALLENGE_KEY}`)
+        const params = new URLSearchParams(response.data)
+        const access_token = params.get("access_token")
+        const octokit = new Octokit({ auth: access_token })
+        const user_response = await octokit.request("GET /user", {
+            headers: {
+                'X-GitHub-Api-Version': '2026-03-10'
+            }
+        })
+        let { id, avatar_url, name } = user_response.data
+
+        let user = {
+            id,
+            avatar_url,
+            name
+        }
+
+        let token = jwt.sign(user, JWT_SECRET)
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: "lax"
+        })
+        res.redirect(`${FRONTEND_URL}/dashboard`)
+    } catch (error) {
+        let message = error instanceof Error ? error.message : "Something went wrong!"
+        console.error(message)
+        res.redirect(`${FRONTEND_URL}/login`)
+    }
+})
+
+export { auth_router }

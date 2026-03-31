@@ -1,10 +1,19 @@
-import express from "express"
+import express, { urlencoded } from "express"
 import { PORT } from "./utils/config"
 import { octokit_middleware } from "./utils/octokit"
+import cors from "cors"
+import cookieParser from "cookie-parser"
+import { auth_router } from "./routes/auth"
 
 const app = express()
 
+app.use(cors())
+app.use(express.json())
+app.use(cookieParser())
+app.use(express.urlencoded({ extended: true }))
 app.use(octokit_middleware)
+
+app.use("/api/v1/auth", auth_router)
 
 app.get("/", (req, res) => {
     res.json({ message: `Server is healthy!` })

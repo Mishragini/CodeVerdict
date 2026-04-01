@@ -12,7 +12,8 @@ interface User {
     app_installation_id: string,
     refresh_token: string | null,
     access_token_expiry: string | null,
-    refresh_token_expiry: string | null
+    refresh_token_expiry: string | null,
+    iat: number
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -29,9 +30,9 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
         }
 
         const decoded_token = jwt.verify(token, JWT_SECRET) as User
-        const { id, avatar_url, name, login, access_token, app_installation_id, refresh_token, access_token_expiry, refresh_token_expiry } = decoded_token
+        const { id, avatar_url, name, login, access_token, app_installation_id, refresh_token, access_token_expiry, refresh_token_expiry, iat } = decoded_token
 
-        const token_res = await validateToken(access_token, refresh_token, access_token_expiry, refresh_token_expiry)
+        const token_res = await validateToken(access_token, refresh_token, access_token_expiry, refresh_token_expiry, iat)
         if (!token_res) {
             res.clearCookie("token")
             res.status(401).json({ error: { message: "Token has expired. Please login again!" } })
@@ -46,7 +47,8 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
                 access_token: updated_access_token,
                 refresh_token: updated_refresh_token,
                 access_token_expiry: updated_access_token_expiry,
-                refresh_token_expiry: updated_refresh_token_expiry
+                refresh_token_expiry: updated_refresh_token_expiry,
+                iat: Math.floor(Date.now() / 1000)
             }
             req.user = updated_user
             const updated_token = jwt.sign(updated_user, JWT_SECRET)

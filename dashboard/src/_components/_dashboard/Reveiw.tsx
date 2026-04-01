@@ -40,7 +40,7 @@ export function Review() {
     );
   }
   return (
-    <div className="p-8">
+    <div className="p-8 space-y-10">
       {data?.reviews?.map((review: Review) => (
         <div
           key={review.id}
@@ -53,7 +53,9 @@ export function Review() {
             Review:{review.id}
           </a>
           <ReactMarkdown>
-            {showFullBody ? review.body : review.body.slice(0, MAX_BODY_LENGTH)}
+            {showFullBody === review.id
+              ? review.body
+              : review.body.slice(0, MAX_BODY_LENGTH)}
           </ReactMarkdown>
           {review.body.length > MAX_BODY_LENGTH && (
             <button

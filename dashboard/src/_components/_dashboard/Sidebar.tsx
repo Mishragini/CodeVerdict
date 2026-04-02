@@ -6,6 +6,8 @@ import { setRepo } from "@/redux/slice/repositorySlice";
 import { setUser } from "@/redux/slice/userSlice";
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
+import { SidebarSkeleton } from "./SidebarSkeleton";
+import { Spinner } from "@/components/ui/spinner";
 
 interface SideBarProps {
   user: User;
@@ -70,7 +72,7 @@ export function SideBar({ user }: SideBarProps) {
     return () => observer.disconnect(); // clean up on unmount
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, container_ref.current]);
   return (
-    <div className="h-full w-full  border-2 border-black rounded-r-2xl">
+    <div className="h-screen w-full  border-2 border-black rounded-r-2xl flex flex-col">
       <div className="flex items-center gap-4 p-8">
         <img
           className="w-24 h-24 rounded-full"
@@ -91,29 +93,33 @@ export function SideBar({ user }: SideBarProps) {
         </div>
       </div>
 
-      <div
-        ref={container_ref}
-        className="h-screen overflow-y-auto pl-8 space-y-4"
-      >
-        {isLoading && <p>Loading repositories...</p>}
+      <div ref={container_ref} className="h-full overflow-y-auto flex-1">
+        {isLoading && <SidebarSkeleton />}
         {isError && <p>Failed to load repositories</p>}
+        <div className="pl-8 space-y-4">
+          {data?.pages.map((page) =>
+            page.repositories.map((repo: Repository) => (
+              <div key={repo.id}>
+                <Button
+                  className={`${name === repo.name ? "bg-muted" : ""}`}
+                  onClick={() => {
+                    dispatch(setRepo({ id: repo.id, name: repo.name }));
+                  }}
+                  variant="ghost"
+                >
+                  {repo.name}
+                </Button>
+              </div>
+            )),
+          )}
+        </div>
 
-        {data?.pages.map((page) =>
-          page.repositories.map((repo: Repository) => (
-            <div key={repo.id}>
-              <Button
-                className={`${name === repo.name ? "bg-muted" : ""}`}
-                onClick={() => {
-                  dispatch(setRepo({ id: repo.id, name: repo.name }));
-                }}
-                variant="ghost"
-              >
-                {repo.name}
-              </Button>
-            </div>
-          )),
+        {isFetchingNextPage && (
+          <div className="flex gap-2 p-6 items-center text-muted-foreground">
+            <Spinner />
+            <p>Loading repositories...</p>
+          </div>
         )}
-        {isFetchingNextPage && <p>Loading repositories...</p>}
         <div ref={sentinel_ref} />
       </div>
     </div>

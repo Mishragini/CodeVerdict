@@ -42,53 +42,51 @@ export function Login() {
     }, 300);
   }, []);
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-foreground text-background shadow-sm text-center">
-        <div className="p-8 space-y-6">
-          <div className="space-y-16">
-            <div className="flex w-full flex-col gap-4 items-center justify-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
-                <GithubMark className="h-8 w-8 text-foreground" />
-              </div>
-              <div>
-                <h1 className="text-xl font-semibold">CodeVerdict</h1>
-                <p className="text-sm text-muted-foreground">
-                  PR review dashboard powered by your GitHub App
-                </p>
-              </div>
+    <div className="min-h-screen w-full flex items-center justify-center p-6 text-background bg-foreground text-center">
+      <div className="p-8 space-y-6">
+        <div className="space-y-16">
+          <div className="flex w-full flex-col gap-4 items-center justify-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
+              <GithubMark className="h-8 w-8 text-foreground" />
             </div>
-            <div className="space-y-2">
-              <h2 className="text-base font-medium">
-                Connect your account to view reviews
-              </h2>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Once you sign in, you&apos;ll be able to see review summaries
-                for repositories where you&apos;ve granted the app access.
+            <div>
+              <h1 className="text-xl font-semibold">CodeVerdict</h1>
+              <p className="text-sm text-muted-foreground">
+                PR review dashboard powered by your GitHub App
               </p>
             </div>
           </div>
-
-          <div className="space-y-3">
-            <Button
-              className="w-full border-muted-background hover:cursor-pointer"
-              disabled={isRedirecting}
-              onClick={handleGithubLogin}
-            >
-              <GithubMark className="mr-2 h-5 w-5" />
-              Continue with GitHub
-            </Button>
-
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              You can manage access from GitHub in your app settings.
+          <div className="space-y-2">
+            <h2 className="text-base font-medium">
+              Connect your account to view reviews
+            </h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Once you sign in, you&apos;ll be able to see review summaries for
+              repositories where you&apos;ve granted the app access.
             </p>
-
-            <a
-              href="/install"
-              className="block text-xs text-muted-foreground underline underline-offset-4 hover:text-background"
-            >
-              I haven&apos;t installed the GitHub App yet
-            </a>
           </div>
+        </div>
+
+        <div className="space-y-3">
+          <Button
+            className="w-md border-muted-background hover:cursor-pointer py-6"
+            disabled={isRedirecting}
+            onClick={handleGithubLogin}
+          >
+            <GithubMark className="mr-2 h-5 w-5" />
+            Continue with GitHub
+          </Button>
+
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            You can manage access from GitHub in your app settings.
+          </p>
+
+          <a
+            href="/install"
+            className="block text-xs text-muted-foreground underline underline-offset-4 hover:text-background"
+          >
+            I haven&apos;t installed the GitHub App yet
+          </a>
         </div>
       </div>
     </div>

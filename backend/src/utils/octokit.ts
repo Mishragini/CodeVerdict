@@ -114,7 +114,7 @@ octokit_app.webhooks.on(
                         }
                     })
                     const last_reviewed_head_sha = last_review?.last_reviewed_head_sha
-                    const compare_response = await handleOctokitReq(octokit, " /GET /repos/{owner}/{repo}/compare/{basehead}", {
+                    const compare_response = await handleOctokitReq(octokit, "GET /repos/{owner}/{repo}/compare/{basehead}", {
                         owner,
                         repo,
                         basehead: `${last_reviewed_head_sha}...${head_sha}`,

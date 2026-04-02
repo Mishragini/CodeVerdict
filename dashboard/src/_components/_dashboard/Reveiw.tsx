@@ -1,6 +1,8 @@
 import { fetchReviews } from "@/lib/apiCall";
 import { useAppSelector } from "@/redux/hook";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import ReactMarkdown from "react-markdown";
 
 interface Review {
   id: number;
@@ -13,16 +15,16 @@ interface Review {
 
 export function Review() {
   const { id, name } = useAppSelector((state) => state.repository);
-  const {
-    data: reviews,
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ["reviews"],
+  const [showFullBody, setShowFullBody] = useState<null | string | number>(
+    null,
+  );
+  const MAX_BODY_LENGTH = 100;
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["reviews", name],
     queryFn: async () => {
       if (!name) return null;
       const response = await fetchReviews(name);
-      return response.reviews;
+      return response;
     },
   });
   if (!id) {
@@ -36,18 +38,39 @@ export function Review() {
         {name}Failed to load reviews..
       </div>
     );
-  } else if (!reviews || reviews?.length < 0) {
-    return <div>No reviews yet to show.</div>;
   }
   return (
-    <div>
-      {reviews.map((review: Review) => {
-        <div className="w-full border-2 border-black rounded-md">
-          <div>Review:{review.id}</div>
-          <div>{review.github_url}</div>
-          <div>{review.body}</div>
-        </div>;
-      })}
+    <div className="p-8 space-y-10">
+      {data?.reviews?.map((review: Review) => (
+        <div
+          key={review.id}
+          className="w-full border-2 border-black rounded-2xl p-8 bg-muted flex flex-col gap-8"
+        >
+          <a
+            href={review.github_url}
+            className="text-xl font-bold hover:underline"
+          >
+            Review:{review.id}
+          </a>
+          <ReactMarkdown>
+            {showFullBody === review.id
+              ? review.body
+              : review.body.slice(0, MAX_BODY_LENGTH)}
+          </ReactMarkdown>
+          {review.body.length > MAX_BODY_LENGTH && (
+            <button
+              onClick={() =>
+                setShowFullBody(
+                  !(showFullBody === review.id) ? review.id : null,
+                )
+              }
+              className="text-md hover:underline"
+            >
+              {showFullBody === review.id ? "Show less" : "Show more"}
+            </button>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

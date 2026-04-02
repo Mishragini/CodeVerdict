@@ -13,11 +13,12 @@ datasource db {
 }
 
 model Review {
-  id          BigInt    @id
-  repo        String
-  owner       String
-  pull_number Int
-  github_url  String
-  body        String
-  created_at  DateTime
+  id                     BigInt    @id
+  repo                   String
+  owner                  String
+  pull_number            Int
+  github_url             String
+  body                   String
+  last_reviewed_head_sha String
+  created_at             DateTime
 }

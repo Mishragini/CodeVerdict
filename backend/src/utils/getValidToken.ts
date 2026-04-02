@@ -5,20 +5,28 @@ export const validateToken = async (
     access_token: string,
     refresh_token: string | null,
     access_token_expiry: string | null,
-    refresh_token_expiry: string | null
+    refresh_token_expiry: string | null,
+    iat: number
 ) => {
     if (!access_token_expiry) {
         return { updated_access_token: access_token, updated_refresh_token: refresh_token, updated_access_token_expiry: access_token_expiry, updated_refresh_token_expiry: refresh_token_expiry }
     }
 
-    const has_expired = Date.parse(access_token_expiry) <= Date.now()
+    const expiry_ms = iat * 1000 + parseInt(access_token_expiry) * 1000
+    const has_expired = expiry_ms <= Date.now()
 
     if (!has_expired) {
         return { updated_access_token: access_token, updated_refresh_token: refresh_token, updated_access_token_expiry: access_token_expiry, updated_refresh_token_expiry: refresh_token_expiry }
+
     }
 
-    if (!refresh_token || (refresh_token && Date.parse(refresh_token_expiry!) <= Date.now())) {
+    if (!refresh_token) {
         return null;
+    }
+
+    if (refresh_token_expiry) {
+        const refresh_expiry_ms = iat * 1000 + parseInt(refresh_token_expiry) * 1000
+        if (refresh_expiry_ms <= Date.now()) return null;
     }
 
     const response = await axios.post(

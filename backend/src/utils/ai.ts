@@ -41,7 +41,7 @@ const removeDiffFiles = (files: string[]) => {
     })
 }
 
-const getReview = async (pr_title: string, pr_description: string, diff: string) => {
+const getReview = async (pr_title: string, pr_description: string, diff: string, last_review?: string) => {
     //handle the long diffs
     //split the unified diff into diff_files
     const exceeds_token_limit = diff.length > MAX_TOKENS;
@@ -63,12 +63,19 @@ const getReview = async (pr_title: string, pr_description: string, diff: string)
     }
     const result = await Promise.all(
         chunks.map(async (chunk) => {
+            const inc_review_addition = [
+                `Previous Review (on earlier commits):`, last_review,
+                `New Changes (incremental diff since last review):`, chunk,
+            ]
+            const normal_review_addition = [
+                `Unified Diff: ${chunk}`
+            ]
             const input = [
                 `PR Title: ${pr_title}`,
                 `PR Description: ${pr_description}`,
-                "Unified Diff:",
-                chunk
-            ].join("\n\n")
+            ]
+
+            const content = (last_review) ? [...input, ...inc_review_addition] : [...input, normal_review_addition]
 
             const response = await client.chat.completions.create({
                 model: "gpt-4o",
@@ -79,7 +86,7 @@ const getReview = async (pr_title: string, pr_description: string, diff: string)
                     },
                     {
                         role: "user",
-                        content: input
+                        content: content.join("\n\n")
                     }
                 ]
             })

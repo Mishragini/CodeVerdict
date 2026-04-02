@@ -70,7 +70,7 @@ export function SideBar({ user }: SideBarProps) {
     return () => observer.disconnect(); // clean up on unmount
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, container_ref.current]);
   return (
-    <div className="h-full w-full  border-2 border-black">
+    <div className="h-full w-full  border-2 border-black rounded-r-2xl">
       <div className="flex items-center gap-4 p-8">
         <img
           className="w-24 h-24 rounded-full"

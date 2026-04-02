@@ -50,9 +50,9 @@ repository_router.get("/reviews", authMiddleware, async (req: AuthenticatedReque
     try {
         const { repo_name } = req.query;
         if (!repo_name) {
-            res.json(400).json({
+            res.status(400).json({
                 error: {
-                    message: "Repo id is required"
+                    message: "Repo name is required"
                 }
             })
             return;
@@ -65,7 +65,12 @@ repository_router.get("/reviews", authMiddleware, async (req: AuthenticatedReque
                 created_at: "desc"
             }
         })
-        res.json({ reviews })
+        res.json({
+            reviews: reviews.map((r) => ({
+                ...r,
+                id: r.id.toString(),
+            })),
+        })
     } catch (error) {
         let message = error instanceof Error ? error.message : "Something went wrong!"
         console.error(message)

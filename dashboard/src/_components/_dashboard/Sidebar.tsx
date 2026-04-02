@@ -21,7 +21,7 @@ interface Repository {
 
 export function SideBar({ user }: SideBarProps) {
   const dispatch = useAppDispatch();
-  const { id, name } = useAppSelector((state) => state.repository);
+  const { name } = useAppSelector((state) => state.repository);
   const {
     data,
     isLoading,
@@ -33,7 +33,7 @@ export function SideBar({ user }: SideBarProps) {
     queryKey: ["repositories"],
     queryFn: ({ pageParam }) => fetchRepositories(pageParam, 35),
     initialPageParam: 1,
-    getNextPageParam: (lastPage, allPages, lastPageParam, allPageParams) => {
+    getNextPageParam: (lastPage, _allPages, lastPageParam, _allPageParams) => {
       const totalPages = Math.ceil(lastPage.total / 35);
       if (lastPageParam < totalPages) {
         return lastPageParam + 1; // return next page number

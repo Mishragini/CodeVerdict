@@ -31,6 +31,6 @@
     "pg": "^8.20.0"
   },
   "scripts": {
-    "dev": "bun run ./src/index.ts"
+    "start": "bun run ./src/index.ts"
   }
 }

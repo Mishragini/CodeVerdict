@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 
 function GithubMark({ className }: { className?: string }) {
@@ -16,8 +17,29 @@ function GithubMark({ className }: { className?: string }) {
 }
 
 export function Login() {
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const error = searchParams.get("error");
+    let timeout_id = null;
+    if (error && error === "auth_failed") {
+      timeout_id = setTimeout(() => {
+        toast.error("GitHub login failed. Please try again.");
+        setSearchParams({}, { replace: true });
+      }, 500);
+    }
+    return () => {
+      timeout_id && clearTimeout(timeout_id);
+    };
+  }, []);
   const handleGithubLogin = useCallback(() => {
-    window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/v1/auth/login`;
+    setIsRedirecting(true);
+    toast.loading("Redirecting to GitHub...", { id: "github-login" });
+
+    // Small delay so the toast renders before navigation
+    setTimeout(() => {
+      window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/v1/auth/login`;
+    }, 300);
   }, []);
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-6">
@@ -49,20 +71,8 @@ export function Login() {
           <div className="space-y-3">
             <Button
               className="w-full border-muted-background hover:cursor-pointer"
-              onClick={() => {
-                toast.promise(
-                  () =>
-                    new Promise<void>((resolve) => {
-                      handleGithubLogin();
-                      resolve();
-                    }),
-                  {
-                    loading: "Logging in...",
-                    success: "Logged in Successfully!",
-                    error: "Error while logging in.",
-                  },
-                );
-              }}
+              disabled={isRedirecting}
+              onClick={handleGithubLogin}
             >
               <GithubMark className="mr-2 h-5 w-5" />
               Continue with GitHub

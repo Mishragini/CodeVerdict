@@ -65,15 +65,15 @@ auth_router.get("/login/callback", async (req, res) => {
                 //secure: true,
                 sameSite: "lax"
             })
-            res.redirect(`${FRONTEND_URL}/dashboard`)
+            res.redirect(`${FRONTEND_URL}/dashboard?login=success`)
         } else {
-            res.redirect(`${FRONTEND_URL}/install`)
+            res.redirect(`${FRONTEND_URL}/install?error=not_installed`)
         }
 
     } catch (error) {
         let message = error instanceof Error ? error.message : "Something went wrong!"
         console.error(message)
-        res.redirect(`${FRONTEND_URL}/login`)
+        res.redirect(`${FRONTEND_URL}/login?error=auth_failed`)
     }
 })
 

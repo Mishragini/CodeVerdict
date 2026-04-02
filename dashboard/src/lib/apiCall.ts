@@ -5,13 +5,16 @@ const BASE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL
 const BASE_AUTH_URL = `${BASE_BACKEND_URL}/api/v1/auth`
 
 export async function fetchUser() {
-    const response = await axios.get(`${BASE_AUTH_URL}/me`, {
-        withCredentials: true
-    })
-    if (response.data.user) {
-        return response.data.user
-    } else {
-        return null
+    try {
+        const response = await axios.get(`${BASE_AUTH_URL}/me`, {
+            withCredentials: true,
+        });
+        return response.data.user ?? null;
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+            return null;
+        }
+        throw error;
     }
 }
 

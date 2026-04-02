@@ -60,94 +60,132 @@ const handleOctokitReq = async (octokit: Octokit, route: string, options: any, r
     }
 }
 
-octokit_app.webhooks.on("pull_request.opened", async ({ octokit, payload }) => {
-    const owner = payload.repository.owner.login
-    const repo = payload.repository.name
-    const pull_number = payload.pull_request.number
-    const head_sha = payload.pull_request.head.sha
+octokit_app.webhooks.on(
+    ["pull_request.opened", "pull_request.synchronize"],
+    async ({ octokit, payload }) => {
+        const action = payload.action
+        const pull_request = payload.pull_request
+        const pull_request_title = payload.pull_request.title
+        const pull_request_description = payload.pull_request.body ?? "No description provided."
+        const owner = payload.repository.owner.login
+        const repo = payload.repository.name
+        const pull_number = pull_request.number
+        const head_sha = pull_request.head?.sha
 
-    // 1. Create the check — shows "in progress" on the PR immediately
-    const { data: check } = await handleOctokitReq(octokit, "POST /repos/{owner}/{repo}/check-runs", {
-        owner,
-        repo,
-        name: "AI Code Review",
-        head_sha,
-        status: "in_progress",
-        started_at: new Date().toISOString(),
-        output: {
-            title: "Reviewing your PR...",
-            summary: "AI review is being generated, hang tight!"
-        },
-
-    })
-
-    try {
-
-        const pr_response = await handleOctokitReq(octokit, "GET /repos/{owner}/{repo}/pulls/{pull_number}", {
+        // 1. Create the check — shows "in progress" on the PR immediately
+        const { data: check } = await handleOctokitReq(octokit, "POST /repos/{owner}/{repo}/check-runs", {
             owner,
             repo,
-            pull_number,
-            mediaType: { format: "diff" }
-        })
-
-        const diff = typeof pr_response.data === "string" ? pr_response.data : ""
-
-        const pr_description = payload.pull_request.body ?? "No description provided."
-
-        const review = await getReview(payload.pull_request.title, pr_description, diff)
-
-        const review_response = await handleOctokitReq(octokit, "POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews", {
-            owner,
-            repo,
-            pull_number,
-            body: review,
-            event: "COMMENT",
-            headers: {
-                "x-github-api-version": "2026-03-10",
-            },
-        })
-        const { id, submitted_at } = review_response.data
-        const created_at = new Date(submitted_at)
-        await handleOctokitReq(octokit, "PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}", {
-            owner,
-            repo,
-            check_run_id: check.id,
-            status: "completed",
-            conclusion: "success",
-            completed_at: new Date().toISOString(),
+            name: "AI Code Review",
+            head_sha,
+            status: "in_progress",
+            started_at: new Date().toISOString(),
             output: {
-                title: "AI Review Complete",
-                summary: "Review has been posted as a comment on the PR."
-            }
+                title: "Reviewing your PR...",
+                summary: "AI review is being generated, hang tight!"
+            },
+
         })
-        const github_url = `https://github.com/${owner}/${repo}/pull/${pull_number}#pullrequestreview-${id}`
-        await prisma.review.create({
-            data: {
-                id,
-                repo,
+
+        try {
+            let review = ""
+
+            switch (action) {
+                case "opened": {
+                    const pr_response = await handleOctokitReq(octokit, "GET /repos/{owner}/{repo}/pulls/{pull_number}", {
+                        owner,
+                        repo,
+                        pull_number,
+                        mediaType: { format: "diff" }
+                    })
+
+                    const diff = typeof pr_response.data === "string" ? pr_response.data : ""
+                    review = await getReview(pull_request_title, pull_request_description, diff)
+                    break
+                }
+                case "synchronize": {
+                    // Pass the new diff and the previous review so AI understands what changed
+                    const last_review = await prisma.review.findFirst({
+                        where: {
+                            repo
+                        },
+                        orderBy: {
+                            created_at: "desc"
+                        }
+                    })
+                    const last_reviewed_head_sha = last_review?.last_reviewed_head_sha
+                    const compare_response = await handleOctokitReq(octokit, " /GET /repos/{owner}/{repo}/compare/{basehead}", {
+                        owner,
+                        repo,
+                        basehead: `${last_reviewed_head_sha}...${head_sha}`,
+                        mediaType: { format: "diff" }
+                    })
+                    const diff = compare_response.data
+                    if (!diff.trim()) {
+                        // No meaningful changes (e.g. merge commit only) — skip review
+                        review = "No new file changes detected since the last review.";
+                    } else {
+                        review = await getReview(pull_request_title, pull_request_description, diff, last_review?.body)
+                    }
+                    break
+                }
+                default:
+                    break
+            }
+
+            const review_response = await handleOctokitReq(octokit, "POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews", {
                 owner,
+                repo,
                 pull_number,
-                github_url,
                 body: review,
-                created_at,
-            },
-        })
-    } catch (error) {
-        console.error("Failed to get AI review:", error)
-        await handleOctokitReq(octokit, "PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}", {
-            owner,
-            repo,
-            check_run_id: check.id,
-            status: "completed",
-            conclusion: "failure",
-            completed_at: new Date().toISOString(),
-            output: {
-                title: "AI Review Failed",
-                summary: "Something went wrong while generating the review."
-            }
-        })
-    }
-});
+                event: "COMMENT",
+                headers: {
+                    "x-github-api-version": "2026-03-10",
+                },
+            })
+            const { id, submitted_at } = review_response.data
+            const created_at = new Date(submitted_at)
+            await handleOctokitReq(octokit, "PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}", {
+                owner,
+                repo,
+                check_run_id: check.id,
+                status: "completed",
+                conclusion: "success",
+                completed_at: new Date().toISOString(),
+                output: {
+                    title: "AI Review Complete",
+                    summary: "Review has been posted as a comment on the PR."
+                }
+            })
+            const github_url = `https://github.com/${owner}/${repo}/pull/${pull_number}#pullrequestreview-${id}`
+            await prisma.review.create({
+                data: {
+                    id,
+                    repo,
+                    owner,
+                    pull_number,
+                    github_url,
+                    body: review,
+                    created_at,
+                    last_reviewed_head_sha: head_sha
+                },
+            })
+        } catch (error) {
+            console.error("Failed to get AI review:", error)
+            await handleOctokitReq(octokit, "PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}", {
+                owner,
+                repo,
+                check_run_id: check.id,
+                status: "completed",
+                conclusion: "failure",
+                completed_at: new Date().toISOString(),
+                output: {
+                    title: "AI Review Failed",
+                    summary: "Something went wrong while generating the review."
+                }
+            })
+        }
+    });
 
 
 export { octokit_app, octokit_middleware }

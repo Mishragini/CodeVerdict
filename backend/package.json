@@ -17,6 +17,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@octokit/webhooks-types": "^7.6.1",
     "@prisma/adapter-pg": "^7.6.0",
     "@prisma/client": "^7.6.0",
     "axios": "^1.14.0",

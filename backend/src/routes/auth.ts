@@ -60,10 +60,9 @@ auth_router.get("/login/callback", async (req, res) => {
 
             let token = jwt.sign(user, JWT_SECRET)
             res.cookie("token", token, {
-                //uncomment it for prod
-                //httpOnly: true,
-                //secure: true,
-                sameSite: "lax"
+                httpOnly: true,
+                secure: true,
+                maxAge: 7 * 24 * 60 * 60 * 1000  // 7 days
             })
             res.redirect(`${FRONTEND_URL}/dashboard?login=success`)
         } else {

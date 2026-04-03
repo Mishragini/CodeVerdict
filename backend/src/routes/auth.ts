@@ -63,7 +63,7 @@ auth_router.get("/login/callback", async (req, res) => {
                 httpOnly: true,
                 secure: true,
                 sameSite: "lax",
-                domain:"onrender.com",
+                domain: ".sans-sane.me",
                 maxAge: 7 * 24 * 60 * 60 * 1000  // 7 days
             })
             res.redirect(`${FRONTEND_URL}/dashboard?login=success`)
@@ -91,7 +91,12 @@ auth_router.get("/me", authMiddleware, async (req: AuthenticatedRequest, res) =>
 
 auth_router.get("/logout", async (req, res) => {
     try {
-        res.clearCookie("token")
+        res.clearCookie("token", {
+            httpOnly: true,
+            secure: true,
+            sameSite: "lax",
+            domain: ".sans-sane.me", 
+        })
         res.json({ message: "Logged out successfully" })
     } catch (error) {
         let message = error instanceof Error ? error.message : "Something went wrong!"

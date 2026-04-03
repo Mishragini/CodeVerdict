@@ -34,7 +34,12 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
 
         const token_res = await validateToken(access_token, refresh_token, access_token_expiry, refresh_token_expiry, iat)
         if (!token_res) {
-            res.clearCookie("token")
+            res.clearCookie("token", {
+                httpOnly: true,
+                secure: true,
+                sameSite: "lax",
+                domain: ".sans-sane.me",
+            })
             res.status(401).json({ error: { message: "Token has expired. Please login again!" } })
             return;
         }
@@ -56,7 +61,7 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
                 httpOnly: true,
                 secure: true,
                 sameSite: "lax",
-                domain: "onrender.com",
+                domain: ".sans-sane.me",
                 maxAge: 7 * 24 * 60 * 60 * 1000  // 7 days
             })
         } else {
